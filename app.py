@@ -5,23 +5,26 @@ import plotly.express as px
 # Load data
 df = pd.read_csv("output/formatted_output.csv")
 
-# Convert date column
+# Convert date column to datetime
 df["date"] = pd.to_datetime(df["date"])
 
-# Sort values
+# Sort values by date
 df = df.sort_values("date")
 
-# Initialize app
+# Initialize Dash app
 app = Dash(__name__)
 
 # App layout
 app.layout = html.Div([
 
+    # Header
     html.H1(
         "Soul Foods Sales Visualizer",
+        id="header",
         className="title"
     ),
 
+    # Region filter section
     html.Div([
 
         html.Label(
@@ -30,7 +33,7 @@ app.layout = html.Div([
         ),
 
         dcc.RadioItems(
-            id="region-filter",
+            id="region-picker",
             options=[
                 {"label": "All", "value": "all"},
                 {"label": "North", "value": "north"},
@@ -45,31 +48,36 @@ app.layout = html.Div([
 
     ], className="filter-container"),
 
-    dcc.Graph(id="sales-chart")
+    # Graph
+    dcc.Graph(
+        id="sales-chart"
+    )
 
 ], className="main-container")
 
 
-# Callback for updating graph
+# Callback to update graph
 @app.callback(
     Output("sales-chart", "figure"),
-    Input("region-filter", "value")
+    Input("region-picker", "value")
 )
 def update_graph(selected_region):
 
-    # Filter data
+    # Filter by region
     if selected_region == "all":
         filtered_df = df
     else:
-        filtered_df = df[df["region"].str.lower() == selected_region]
+        filtered_df = df[
+            df["region"].str.lower() == selected_region
+        ]
 
-    # Group by date
+    # Group sales by date
     daily_sales = filtered_df.groupby(
         "date",
         as_index=False
     )["sales"].sum()
 
-    # Create figure
+    # Create line chart
     fig = px.line(
         daily_sales,
         x="date",
@@ -81,7 +89,7 @@ def update_graph(selected_region):
         }
     )
 
-    # Add vertical reference line
+    # Add price increase marker
     fig.add_vline(
         x="2021-01-15",
         line_width=3,
@@ -98,7 +106,7 @@ def update_graph(selected_region):
         arrowhead=2
     )
 
-    # Improve styling
+    # Improve graph styling
     fig.update_layout(
         template="plotly_white",
         title_x=0.5
@@ -109,4 +117,4 @@ def update_graph(selected_region):
 
 # Run app
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=False, port=8050)
